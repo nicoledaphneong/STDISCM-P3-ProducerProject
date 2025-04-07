@@ -8,42 +8,43 @@ namespace ProducerProject
 {
     public class Producer
     {
-        private string folderPath;
+        private List<string> folderPaths;
         private string serverIp;
         private int serverPort;
-        private int numberOfThreads;
 
-        public Producer(string folderPath, string serverIp, int serverPort, int numberOfThreads)
+        public Producer(List<string> folderPaths, string serverIp, int serverPort)
         {
-            this.folderPath = folderPath;
+            this.folderPaths = folderPaths;
             this.serverIp = serverIp;
             this.serverPort = serverPort;
-            this.numberOfThreads = numberOfThreads;
         }
 
         public void Start()
         {
-            var videoFiles = Directory.GetFiles(folderPath, "*.mp4"); // Assuming video files are .mp4
-            Console.WriteLine($"[DEBUG] {videoFiles.Length} number of videos found");
-
-            int threadCount = 0;
             List<Thread> threads = new List<Thread>();
 
-            foreach (var videoFile in videoFiles)
+            foreach (var folderPath in folderPaths)
             {
-                if (threadCount >= numberOfThreads)
-                    break;
-
-                Thread thread = new Thread(() => UploadVideo(videoFile));
+                Thread thread = new Thread(() => ProcessFolder(folderPath));
                 threads.Add(thread);
                 thread.Start();
-                threadCount++;
             }
 
             // Wait for all threads to complete to ensure all videos are processed
             foreach (var thread in threads)
             {
                 thread.Join();
+            }
+        }
+
+        private void ProcessFolder(string folderPath)
+        {
+            var videoFiles = Directory.GetFiles(folderPath, "*.mp4"); // Assuming video files are .mp4
+            Console.WriteLine($"[DEBUG] {videoFiles.Length} number of videos found in folder {folderPath}");
+
+            foreach (var videoFile in videoFiles)
+            {
+                UploadVideo(videoFile);
             }
         }
 
@@ -86,22 +87,27 @@ namespace ProducerProject
             Console.WriteLine("Enter the port number for communication:");
             int serverPort = int.Parse(Console.ReadLine());
 
-            string defaultPath = AppDomain.CurrentDomain.BaseDirectory;
-            Console.WriteLine($"Use default path ({defaultPath})? Y/n");
-            string useDefaultPath = Console.ReadLine();
+            List<string> folderPaths = new List<string>();
 
-            string folderPath;
-            if (useDefaultPath.Equals("Y", StringComparison.OrdinalIgnoreCase))
+            for (int i = 0; i < numberOfProducers; i++)
             {
-                folderPath = defaultPath;
-            }
-            else
-            {
-                Console.WriteLine("Enter the folder path where video files are stored:");
-                folderPath = Console.ReadLine();
+                string defaultPath = AppDomain.CurrentDomain.BaseDirectory;
+                Console.WriteLine($"Use default path for thread {i + 1} ({defaultPath})? Y/n");
+                string useDefaultPath = Console.ReadLine();
+
+                if (useDefaultPath.Equals("Y", StringComparison.OrdinalIgnoreCase))
+                {
+                    folderPaths.Add(defaultPath);
+                }
+                else
+                {
+                    Console.WriteLine($"Enter the folder path for thread {i + 1} where video files are stored:");
+                    string folderPath = Console.ReadLine();
+                    folderPaths.Add(folderPath);
+                }
             }
 
-            Producer producer = new Producer(folderPath, serverIp, serverPort, numberOfProducers);
+            Producer producer = new Producer(folderPaths, serverIp, serverPort);
             producer.Start();
 
             Console.WriteLine("Producer started. Press any key to exit...");
