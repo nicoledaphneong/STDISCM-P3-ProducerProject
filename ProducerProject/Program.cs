@@ -23,9 +23,11 @@ namespace ProducerProject
         {
             List<Thread> threads = new List<Thread>();
 
-            foreach (var folderPath in folderPaths)
+            for (int i = 0; i < folderPaths.Count; i++)
             {
-                Thread thread = new Thread(() => ProcessFolder(folderPath));
+                int threadId = i + 1;
+                string folderPath = folderPaths[i];
+                Thread thread = new Thread(() => ProcessFolder(folderPath, threadId));
                 threads.Add(thread);
                 thread.Start();
             }
@@ -37,18 +39,18 @@ namespace ProducerProject
             }
         }
 
-        private void ProcessFolder(string folderPath)
+        private void ProcessFolder(string folderPath, int threadId)
         {
             var videoFiles = Directory.GetFiles(folderPath, "*.mp4"); // Assuming video files are .mp4
             Console.WriteLine($"[DEBUG] {videoFiles.Length} number of videos found in folder {folderPath}");
 
             foreach (var videoFile in videoFiles)
             {
-                UploadVideo(videoFile);
+                UploadVideo(videoFile, threadId);
             }
         }
 
-        private void UploadVideo(string videoFilePath)
+        private void UploadVideo(string videoFilePath, int threadId)
         {
             try
             {
@@ -58,6 +60,15 @@ namespace ProducerProject
                 {
                     byte[] buffer = new byte[1024];
                     int bytesRead;
+
+                    // Send threadId and fileName first
+                    string fileName = Path.GetFileName(videoFilePath);
+                    string header = $"{threadId}|{fileName}";
+                    byte[] headerBytes = System.Text.Encoding.UTF8.GetBytes(header);
+                    stream.Write(headerBytes, 0, headerBytes.Length);
+
+                    // Send a delimiter to separate header and file content
+                    stream.WriteByte(0);
 
                     while ((bytesRead = fs.Read(buffer, 0, buffer.Length)) > 0)
                     {
