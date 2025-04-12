@@ -39,6 +39,7 @@ namespace ProducerProject
             }
         }
 
+        // DEMO 2
         private void ProcessFolder(string folderPath, int threadId)
         {
             var videoFiles = Directory.GetFiles(folderPath, "*.mp4"); // Assuming video files are .mp4
@@ -54,6 +55,7 @@ namespace ProducerProject
         {
             try
             {
+                // DEMO 1: The network setup.  Show the usage of VM/docker/containers.  The network connectivity between components.
                 using (TcpClient client = new TcpClient(serverIp, serverPort))
                 using (NetworkStream stream = client.GetStream())
                 using (FileStream fs = new FileStream(videoFilePath, FileMode.Open, FileAccess.Read))
@@ -61,7 +63,8 @@ namespace ProducerProject
                     byte[] buffer = new byte[1024];
                     int bytesRead;
 
-                    // Send threadId and fileName first
+                    // DEMO 2: Showcase the producer process.
+                    // Header with thread ID and file name is prepared. Content sent in chunks.
                     string fileName = Path.GetFileName(videoFilePath);
                     string header = $"{threadId}|{fileName}";
                     byte[] headerBytes = System.Text.Encoding.UTF8.GetBytes(header);
@@ -75,7 +78,7 @@ namespace ProducerProject
                         stream.Write(buffer, 0, bytesRead);
                     }
 
-                    Console.WriteLine($"Sent video {videoFilePath} to consumer.");
+                    //Console.WriteLine($"Sent video {videoFilePath} to consumer.");
                 }
             }
             catch (Exception ex)
@@ -121,7 +124,7 @@ namespace ProducerProject
             Producer producer = new Producer(folderPaths, serverIp, serverPort);
             producer.Start();
 
-            Console.WriteLine("Producer started. Press any key to exit...");
+            //Console.WriteLine("Producer started. Press any key to exit...");
             Console.ReadKey();
         }
     }
